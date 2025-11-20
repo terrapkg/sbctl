@@ -7,9 +7,16 @@ ENTRY_DIR_ABS="$3"
 # shellcheck disable=SC2034  # Unused variables left for readability
 KERNEL_IMAGE="$4"
 
-
-# HACK: This is actually where the kernel file resides
-IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
+# $ENTRY_DIR_ABS/linux is the systemd-boot path?
+# HACK: This is actually where the kernel file resides in GRUB installs
+#IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
+if [ -e "$ENTRY_DIR_ABS/linux" ]; then
+    echo "Using $ENTRY_DIR_ABS/linux as kernel image path, assuming systemd-boot layout."
+    IMAGE_FILE="$ENTRY_DIR_ABS/linux"
+else
+    echo "Using /boot/vmlinuz-$KERNEL_VERSION as kernel image path, assuming GRUB layout."
+    IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
+fi
 
 if [ "$KERNEL_INSTALL_LAYOUT" = "uki" ]; then
 	UKI_DIR="$KERNEL_INSTALL_BOOT_ROOT/EFI/Linux"
