@@ -7,7 +7,9 @@ ENTRY_DIR_ABS="$3"
 # shellcheck disable=SC2034  # Unused variables left for readability
 KERNEL_IMAGE="$4"
 
-IMAGE_FILE="$ENTRY_DIR_ABS/linux"
+
+# HACK: This is actually where the kernel file resides
+IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
 
 if [ "$KERNEL_INSTALL_LAYOUT" = "uki" ]; then
 	UKI_DIR="$KERNEL_INSTALL_BOOT_ROOT/EFI/Linux"
@@ -35,12 +37,20 @@ add)
 		echo "Secureboot key directory doesn't exist, not signing!"
 		exit 0
 	fi
-
-	sbctl sign "$IMAGE_FILE" 1>/dev/null
+	if [ "$KERNEL_INSTALL_VERBOSE" -gt 0 ]; then
+		sbctl sign "$IMAGE_FILE"
+	else
+	    sbctl sign "$IMAGE_FILE" 1>/dev/null
+	fi
 	;;
 remove)
 	[ "$KERNEL_INSTALL_VERBOSE" -gt 0 ] &&
 		printf 'sbctl: Removing kernel %s from signing database\n' "$IMAGE_FILE"
-	sbctl remove-file "$IMAGE_FILE" 1>/dev/null || :
+
+	if [ "$KERNEL_INSTALL_VERBOSE" -gt 0 ]; then
+	    sbctl remove-file "$IMAGE_FILE" || :
+	else
+	    sbctl remove-file "$IMAGE_FILE" 1>/dev/null || :
+	fi
 	;;
 esac
