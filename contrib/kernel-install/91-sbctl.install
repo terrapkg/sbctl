@@ -10,12 +10,15 @@ KERNEL_IMAGE="$4"
 # $ENTRY_DIR_ABS/linux is the systemd-boot path?
 # HACK: This is actually where the kernel file resides in GRUB installs
 #IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
-if [ -e "$ENTRY_DIR_ABS/linux" ]; then
-    echo "Using $ENTRY_DIR_ABS/linux as kernel image path, assuming systemd-boot layout."
-    IMAGE_FILE="$ENTRY_DIR_ABS/linux"
+SYSTEMD_BOOT_IMAGE="$ENTRY_DIR_ABS/linux"
+GRUB_IMAGE="/boot/vmlinuz-$KERNEL_VERSION"
+
+if [ -e "$SYSTEMD_BOOT_IMAGE" ]; then
+    echo "Using $SYSTEMD_BOOT_IMAGE as kernel image path, assuming systemd-boot layout."
+    IMAGE_FILE="$SYSTEMD_BOOT_IMAGE"
 else
-    echo "Using /boot/vmlinuz-$KERNEL_VERSION as kernel image path, assuming GRUB layout."
-    IMAGE_FILE="/boot/vmlinuz-$KERNEL_VERSION"
+    echo "Using $GRUB_IMAGE as kernel image path, assuming GRUB layout."
+    IMAGE_FILE="$GRUB_IMAGE"
 fi
 
 if [ "$KERNEL_INSTALL_LAYOUT" = "uki" ]; then
@@ -51,13 +54,23 @@ add)
 	fi
 	;;
 remove)
-	[ "$KERNEL_INSTALL_VERBOSE" -gt 0 ] &&
-		printf 'sbctl: Removing kernel %s from signing database\n' "$IMAGE_FILE"
+	remove_signed_image() {
+		image_path="$1"
+		[ "$KERNEL_INSTALL_VERBOSE" -gt 0 ] &&
+			printf 'sbctl: Removing kernel %s from signing database\n' "$image_path"
 
-	if [ "$KERNEL_INSTALL_VERBOSE" -gt 0 ]; then
-	    sbctl remove-file "$IMAGE_FILE" || :
+		if [ "$KERNEL_INSTALL_VERBOSE" -gt 0 ]; then
+		    sbctl remove-file "$image_path" || :
+		else
+		    sbctl remove-file "$image_path" 1>/dev/null || :
+		fi
+	}
+
+	if [ "$KERNEL_INSTALL_LAYOUT" = "uki" ]; then
+		remove_signed_image "$IMAGE_FILE"
 	else
-	    sbctl remove-file "$IMAGE_FILE" 1>/dev/null || :
+		remove_signed_image "$SYSTEMD_BOOT_IMAGE"
+		remove_signed_image "$GRUB_IMAGE"
 	fi
 	;;
 esac
